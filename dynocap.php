@@ -14,7 +14,7 @@
  * Add service worker initialization scripts
  */
 function dynocap_load_serviceworker() {
-  wp_enqueue_script('dynocap_script', plugins_url('/js/app.js', __FILE__), array(), '1.0.0', true);
+  wp_enqueue_script('dynocap_script', plugins_url('/js/dynocap-sw-init.js', __FILE__), array(), '1.0.0', true);
 }
 add_action('wp_enqueue_scripts', 'dynocap_load_serviceworker');
 
@@ -61,7 +61,6 @@ function dynocap_copy_sw_to_root() {
         echo "failed to copy $plugin_dir to $root_dir...\n";
     }
 }
-add_action( 'wp_head', 'dynocap_copy_sw_to_root' );
 
 
 
@@ -75,8 +74,8 @@ function dynocap_create_manifest_json() {
     "lang": "en-GB",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#3367D6",
-    "theme_color": "#3367D6"
+    "background_color": "#ffffff",
+    "theme_color": "#000000"
   }';
 
   $file = dynocap_get_wp_config_path() . '/manifest.json'; 
@@ -84,7 +83,6 @@ function dynocap_create_manifest_json() {
   $write = fputs( $open, $jsonContent ); 
   fclose( $open );
 }
-add_action( 'wp_head', 'dynocap_create_manifest_json' );
 
 
 
@@ -107,33 +105,31 @@ function dynocap_register_settings() {
 }
 add_action( 'admin_init', 'dynocap_register_settings' );
 
+function dynocap_activate() {
+    dynocap_copy_sw_to_root();
+    dynocap_create_manifest_json();
+}
 
+register_activation_hook( __FILE__, 'dynocap_activate' );
 
 /**
- * Create options page and menu item
+ * Clean up files on deactivate
  */
-function dynocap_register_options_page() {
-    add_options_page('DynoCap Worker', 'DynoCap Worker', 'manage_options', 'dynocap', 'dynocap_options_page');
+function dynocap_deactivate() {
+    $sw_file = dynocap_get_wp_config_path() . '/serviceworker.js';
+    $manifest_file = dynocap_get_wp_config_path() . '/manifest.json';
+
+    if (!unlink($sw_file)) {
+        echo "unable to remove file $sw_file...\n";
+    } else {
+        echo "$sw_file successfully removed";
+    }
+
+    if (!unlink($manifest_file)) {
+        echo "unable to remove file $manifest_file...\n";
+    } else {
+        echo "$manifest_file successfully removed";
+    }
 }
-add_action('admin_menu', 'dynocap_register_options_page');
 
-
-function dynocap_options_page()
-{ ?>
-  <div>
-    <?php screen_icon(); ?>
-    <h2>DynoCap Worker - Service Worker for WordPress</h2>
-    <form method="post" action="options.php">
-        <?php settings_fields( 'dynocap_options_group' ); ?>
-        <h3>This is my option</h3>
-        <p>Some text here.</p>
-        <table>
-            <tr valign="top">
-                <th scope="row"><label for="dynocap_option_name">Label</label></th>
-                <td><input type="text" id="dynocap_option_name" name="dynocap_option_name" value="<?php echo get_option('dynocap_option_name'); ?>" /></td>
-            </tr>
-        </table>
-        <?php submit_button(); ?>
-    </form>
-  </div>
-<?php } ?>
+register_deactivation_hook( __FILE__, 'dynocap_deactivate' );

@@ -2,8 +2,9 @@ importScripts('https://storage.googleapis.com/workbox-cdn/releases/3.0.0/workbox
 
 const cacheName = 'wp_sw_cache';
 
-// Cache JS and CSS files
-workbox.routing.registerRoute(/.*\.(?:js|css)/,
+// Cache JS and CSS files except
+// the service worker register function in dynocap-sw-init.js
+workbox.routing.registerRoute(/.*(?<!dynocap-sw-init)\.(?:js|css)/,
   new workbox.strategies.StaleWhileRevalidate({
     cacheName
   })
