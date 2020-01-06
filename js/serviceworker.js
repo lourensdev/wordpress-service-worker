@@ -39,4 +39,4 @@ workbox.routing.registerRoute(
       }),
     ],
   }),
-); 
+);
